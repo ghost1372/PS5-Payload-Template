@@ -16,8 +16,9 @@ ELF := $(APP_NAME)-$(PAYLOAD_VERSION).elf
 SQLITE_SRC := $(wildcard sqlite/sqlite3.c)
 SQLITE_HDR := $(wildcard sqlite/sqlite3.h)
 
-SOURCES := main.c server.c webui.c $(SQLITE_SRC)
-HEADERS := config.h server.h webui.h $(SQLITE_HDR)
+SOURCES := main.c server.c $(SQLITE_SRC)
+HEADERS := config.h server.h $(SQLITE_HDR)
+ASSETS  := web/index.html
 
 CPPFLAGS := -DAPP_NAME=\"$(APP_NAME)\" \
             -DPAYLOAD_VERSION=\"$(PAYLOAD_VERSION)\"
@@ -35,7 +36,7 @@ LDLIBS := -lkernel_sys -lSceUserService -lSceSystemService
 
 all: $(ELF)
 
-$(ELF): $(SOURCES) $(HEADERS)
+$(ELF): $(SOURCES) $(HEADERS) $(ASSETS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(SOURCES) $(LDLIBS)
 
 clean:

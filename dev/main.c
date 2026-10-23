@@ -3,7 +3,7 @@
  *
  *   main.c    wiring: routes requests and starts everything
  *   server.c  minimal HTTP server (GET/POST), knows nothing about the app
- *   webui.c   the web page, as a C string
+ *   web/index.html  the web page, embedded into the payload at build time
  *   config.h  every project-specific string and constant
  *
  * Open the UI from any device on the same network at
@@ -15,12 +15,41 @@
  * files and list them in the Makefile.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+
+#include <sys/syscall.h>
 
 #include "config.h"
 #include "server.h"
-#include "webui.h"
+
+/*
+ * Embed web/index.html into the payload at build time (no external tools
+ * needed). Defines: const uint8_t web_index_html[]; const size_t web_index_html_size;
+ * The path is relative to the directory `make` runs in.
+ */
+#define INCASSET(name, file)                    \
+    __asm__(".section .rodata\n"                \
+            ".global " #name "\n"               \
+            ".global " #name "_end\n"           \
+            ".global " #name "_size\n"          \
+            ".align 16\n"                       \
+            #name ":\n"                         \
+            ".incbin \"" file "\"\n"            \
+            #name "_end:\n"                     \
+            #name "_size:\n"                    \
+            ".quad " #name "_end - " #name "\n" \
+            ".previous\n");                     \
+    extern const uint8_t name[];                \
+    extern const size_t name##_size;
+
+INCASSET(web_index_html, "web/index.html");
+
+/* The process-list name is a thread name: 19 characters at most. */
+_Static_assert(sizeof(PAYLOAD_PROCESS_NAME) <= 20,
+               "PAYLOAD_PROCESS_NAME must be at most 19 characters");
 
 int sceUserServiceInitialize(void *arg);
 int sceSystemServiceLaunchWebBrowser(const char *uri, void *arg);
@@ -34,15 +63,19 @@ static void handle_request(int fd, const server_request_t *req, void *user) {
     }
 
     if(strcmp(req->path, "/") == 0 || strcmp(req->path, "/index.html") == 0) {
-        server_send(fd, 200, "text/html; charset=utf-8", webui_page(),
-                    webui_page_length(), 0);
+        server_send(fd, 200, "text/html; charset=utf-8",
+                    (const char *)web_index_html, web_index_html_size, 0);
     } else if(strcmp(req->path, "/api/info") == 0) {
         char ip[64];
-        char body[192];
+        char body[512];
 
+        /* name/tagline/footer come from config.h; avoid " and \ in them. */
         server_local_ip(ip, sizeof ip);
-        snprintf(body, sizeof body, "{\"ip\":\"%s\",\"port\":%d,\"version\":\"%s\"}",
-                 ip, APP_PORT, PAYLOAD_VERSION);
+        snprintf(body, sizeof body,
+                 "{\"ip\":\"%s\",\"port\":%d,\"version\":\"%s\","
+                 "\"name\":\"%s\",\"tagline\":\"%s\",\"footer\":\"%s\"}",
+                 ip, APP_PORT, PAYLOAD_VERSION, APP_NAME, APP_TAGLINE,
+                 APP_FOOTER_TEXT);
         server_send(fd, 200, "application/json; charset=utf-8", body,
                     strlen(body), 0);
     } else {
@@ -62,6 +95,9 @@ static void launch_ps5_browser(void) {
 
 int main(void) {
     int listen_fd;
+
+    /* Name shown in the running-process list (see config.h). */
+    syscall(SYS_thr_set_name, -1, PAYLOAD_PROCESS_NAME);
 
 #if APP_OPEN_IN_CONSOLE_BROWSER
     (void)sceUserServiceInitialize(NULL);

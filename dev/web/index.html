@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090b12">
+<title>Payload</title>
+<style>
+:root {
+  color-scheme: dark;
+  font-size: 18px;
+  font-size: clamp(18px, 1.6vw, 56px);
+  font-family: Inter, "Segoe UI", sans-serif;
+  --bg: #090b12;
+  --line: rgba(180, 193, 230, .12);
+  --muted: #8b93aa;
+  --text: #f2f5ff;
+  --cyan: #68e4ff;
+}
+* { box-sizing: border-box; }
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1.125rem;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 14% 8%, rgba(69, 83, 173, .23), transparent 33rem),
+    radial-gradient(ellipse at 88% 84%, rgba(35, 157, 174, .13), transparent 30rem),
+    var(--bg);
+}
+.shell { width: min(100%, 36rem); }
+.card {
+  padding: 1.875rem;
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, rgba(22, 27, 42, .92), rgba(13, 16, 25, .91));
+  box-shadow: 0 1.75rem 5rem rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.045);
+}
+h1 { margin: 0; font-size: 1.875rem; letter-spacing: -.04em; }
+.version { margin-left: 0.5rem; color: var(--cyan); font-size: 1rem; font-weight: 600; }
+.tagline { margin: 0.5rem 0 0; color: var(--muted); font-size: 1rem; }
+.divider { height: 1px; margin: 1.5rem 0; background: var(--line); }
+.connection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9375rem;
+  background: rgba(5, 8, 15, .38);
+}
+.label {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.value { font-family: "SFMono-Regular", Consolas, monospace; font-size: 1.25rem; font-weight: 600; }
+footer { margin: 1.0625rem 0.3125rem 0; color: #747c91; font-size: 0.9375rem; text-align: center; }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card">
+      <h1><span id="name"></span> <span class="version" id="ver"></span></h1>
+      <p class="tagline" id="tagline"></p>
+      <div class="divider"></div>
+      <div class="connection" aria-label="Access address">
+        <span class="label">Access</span>
+        <span class="value" id="addr">...</span>
+      </div>
+    </section>
+    <footer id="footer"></footer>
+  </main>
+<script>
+fetch('/api/info')
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    document.getElementById('addr').textContent = d.ip + ':' + d.port;
+    document.getElementById('ver').textContent = d.version;
+    document.getElementById('name').textContent = d.name;
+    document.getElementById('tagline').textContent = d.tagline;
+    document.getElementById('footer').textContent = d.footer;
+    document.title = d.name;
+  })
+  .catch(function () {
+    document.getElementById('addr').textContent = location.host;
+  });
+</script>
+</body>
+</html>

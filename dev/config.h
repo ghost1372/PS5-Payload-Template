@@ -15,7 +15,14 @@
 #define PAYLOAD_VERSION "dev"
 #endif
 
-/* Text shown in the web UI */
+/* Name shown in the PS5 running-process list (a thread name: 19 characters
+ * at most, so keep APP_NAME short). */
+#ifndef PAYLOAD_PROCESS_NAME
+#define PAYLOAD_PROCESS_NAME "payload.elf"
+#endif
+
+/* Text shown in the web UI (sent to the page by GET /api/info, so they are
+ * not hard-coded in web/index.html). Do not use " or \ in these strings. */
 #define APP_TAGLINE      "A PS5 payload with a web UI"
 #define APP_FOOTER_TEXT  "Developed by Your Name"
 
