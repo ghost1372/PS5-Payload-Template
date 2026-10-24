@@ -19,27 +19,9 @@ Out of the box the payload does nothing except show its own page. Everything els
 | `config.h` | Every project-specific string and constant. Start here. |
 | `main.c` | Startup and request routing (`handle_request()`). |
 | `server.c` / `server.h` | Minimal HTTP server. Knows nothing about your app. |
-| `webui.c` / `webui.h` | The web page, stored as a C string. |
+| `index.html` | The web page. |
 | `sqlite/` | Put `sqlite3.c` and `sqlite3.h` here (optional, see below). |
 | `Makefile` | Build, deploy and debug targets. |
-
-## Configure your payload
-
-Open `config.h` and change what you need:
-
-| Setting | Meaning |
-|---------|---------|
-| `APP_NAME` | Name of the payload (page title, heading). Set the same name in the Makefile (`APP_NAME`), which also names the `.elf`. |
-| `PAYLOAD_VERSION` | Version shown in the UI. Set it in the Makefile (`PAYLOAD_VERSION`). |
-| `APP_TAGLINE` | Short line under the heading. |
-| `APP_FOOTER_TEXT` | Text shown in the page footer. |
-| `APP_PORT` | Port of the web server (default `7788`). |
-| `APP_OPEN_IN_CONSOLE_BROWSER` | `1` opens the UI in the PS5 browser automatically, `0` only serves it to other devices. |
-| `APP_CSRF_HEADER` | Header name that edit requests must send |
-| `APP_DB_PATH` | Path of the console database `app.db`. |
-| `APP_DB_BACKUP_PATH` | Where to copy `app.db` before you modify it. |
-
-Most values can also be overridden from the command line, for example `make APP_NAME=MyTool PAYLOAD_VERSION=v1.2.0`.
 
 ## Build
 
