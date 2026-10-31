@@ -25,7 +25,9 @@ typedef void (*server_handler_t)(int client_fd, const server_request_t *request,
  * (for example when the port is already in use). */
 int server_start(int port);
 
-/* Serves requests until accept() fails for good. Returns -1 in that case. */
+/* Serves requests forever. If the listening socket is torn down (for example
+ * by Rest Mode), it is closed and bound again on the same port as soon as the
+ * network is back. Call server_start() first: it records the port. */
 int server_run(int listen_fd, server_handler_t handler, void *user);
 
 /* Writes the console's LAN IPv4 address ("127.0.0.1" if none is found). */

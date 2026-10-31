@@ -20,6 +20,7 @@
 
 #define REQUEST_MAX 4096
 #define IO_TIMEOUT_SECONDS 5
+#define REBIND_RETRY_SECONDS 2
 
 static const char *status_text(int status) {
     switch(status) {
@@ -137,10 +138,15 @@ void server_local_ip(char *buffer, size_t buffer_size) {
     freeifaddrs(list);
 }
 
+static int listen_port;
+
 int server_start(int port) {
     struct sockaddr_in addr;
     int opt = 1;
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    int fd;
+
+    listen_port = port;
+    fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if(fd < 0) {
         return -1;
@@ -258,9 +264,28 @@ static int read_request(int fd, char *method, size_t method_size, char *path,
     return 0;
 }
 
+/* Rest Mode (and network drops) can tear the listening socket down. Close what
+ * is left of it and keep trying to bind again until the network is back. */
+static int rebind(int old_fd) {
+    int fd;
+
+    if(old_fd >= 0) {
+        close(old_fd);
+    }
+    for(;;) {
+        sleep(REBIND_RETRY_SECONDS);
+        fd = server_start(listen_port);
+        if(fd >= 0) {
+            return fd;
+        }
+    }
+}
+
 int server_run(int listen_fd, server_handler_t handler, void *user) {
-    /* A write to a closed socket must not kill the payload. */
+    /* A write to a closed socket or a dropped session must not kill the
+     * payload. */
     signal(SIGPIPE, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
 
     for(;;) {
         char method[16];
@@ -271,10 +296,20 @@ int server_run(int listen_fd, server_handler_t handler, void *user) {
         int client_fd = accept(listen_fd, NULL, NULL);
 
         if(client_fd < 0) {
-            if(errno == EINTR || errno == ECONNABORTED) {
-                continue;
+            switch(errno) {
+                case EINTR:
+                case ECONNABORTED:
+                    continue;
+                case EMFILE:
+                case ENFILE:
+                case ENOBUFS:
+                case ENOMEM:
+                    sleep(1);
+                    continue;
+                default:
+                    listen_fd = rebind(listen_fd);
+                    continue;
             }
-            return -1;
         }
 
         /* An idle connection must not freeze the single-threaded server. */
